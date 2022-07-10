@@ -1,7 +1,44 @@
 import Link from 'next/link';
-import { Box, Flex, Text, Spacer } from '@chakra-ui/react';
+import { Box, Flex, Text } from '@chakra-ui/react';
+import * as tf from "@tensorflow/tfjs";
+import { ImHappy, ImNeutral, ImSad } from 'react-icons/im';
 
-const Card = ({ news: { title, summary, link, published_date, country, author } }) => (
+const padSequences = (sequences, metadata) => {
+    return sequences.map(sequence => {
+        if (sequence.length < metadata.max_len) {
+            const pad = [];
+            for (let i = 0; i < metadata.max_len - sequence.length; ++i) {
+                pad.push(0);
+            }
+            sequence = pad.concat(sequence);
+        }
+        else if (sequence.length > metadata.max_len) {
+            sequence.splice(0, sequence.length - metadata.max_len);
+        }
+        return sequence;
+    });
+}
+
+const predict = (text, model, metadata) => {
+    const splitText = text.trim().toLowerCase().replace(/(\.|\,|\!)/g, '').split(' ');
+    const sequence = splitText.map(word => {
+    if (typeof metadata.word_index === 'undefined') {
+        return 2;
+    }
+    else {
+        return metadata.word_index[word] + metadata.index_from;
+    }
+    });
+    const paddedSequence = padSequences([sequence], metadata);
+    const input = tf.tensor2d(paddedSequence, [1, metadata.max_len]);
+  
+    const prediction = model.predict(input);
+    const score = prediction.dataSync()[0];
+    prediction.dispose();
+    return score;
+}
+
+const Card = ({ news: { title, summary, link, published_date, country, author }, model, metadata }) => (
     <Flex flexWrap="wrap" w="450px" p="10" m="5" paddingTop="5" cursor="pointer" bg='gray.50' borderRadius="10">
         <Box>
             <Link href={link}>
@@ -17,6 +54,9 @@ const Card = ({ news: { title, summary, link, published_date, country, author } 
             </Text>
             <Text paddingTop="6">
                 {summary.length > 500 ? `${summary.substring(0, 300)}...` : summary}
+            </Text>
+            <Text paddingTop="6">
+                {predict(summary, model, metadata) > 0.8 ? <ImHappy /> : predict(summary, model, metadata) < 0.5 ? <ImSad /> : <ImNeutral />}
             </Text>
         </Box>
     </Flex>

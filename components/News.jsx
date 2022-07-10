@@ -6,7 +6,7 @@ import { Flex } from '@chakra-ui/react';
 import Card from '../components/Card'
 import { baseUrl, credentials } from '../utils/fetchTools'
 
-function News({ query }) {
+function News({ query, model, metadata }) {
     const [data, setData] = useState([]);
 
     console.log(`Rendering news for query: ${query}`);
@@ -27,7 +27,7 @@ function News({ query }) {
     return (
         <div>
             <Flex flexWrap="wrap" justifyContent="center">
-                {data && data.map((news) => <Card news={news} key={news.id} />)}
+                {data && data.map((news) => <Card news={news} key={news.id} model={model} metadata={metadata}/>)}
             </Flex>
         </div>
     );
